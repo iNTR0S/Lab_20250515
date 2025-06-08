@@ -1,0 +1,16 @@
+# Wyniki 5-krotnej walidacji krzyżowej – sieć z publikacji (zadanie 5)
+
+| Fold   | Accuracy [%] | Precision (ważona) | Recall (ważona) | F1-score (ważona) |
+|--------|--------------|--------------------|-----------------|-------------------|
+|   1    |    70.00     |      0.6511        |     0.7000      |     0.6422        |
+|   2    |    76.67     |      0.7500        |     0.7667      |     0.7333        |
+|   3    |    83.33     |      0.7833        |     0.8333      |     0.7889        |
+|   4    |    83.33     |      0.8444        |     0.8333      |     0.8089        |
+|   5    |    66.67     |      0.6389        |     0.6667      |     0.6256        |
+| ŚREDNIA|    76.00     |      0.7336        |     0.7600      |     0.7198        |
+
+Legenda:
+- Accuracy [%] – dokładność
+- Precision (ważona) – precyzja (średnia ważona)
+- Recall (ważona) – czułość (średnia ważona)
+- F1-score (ważona) – F1-score (średnia ważona)

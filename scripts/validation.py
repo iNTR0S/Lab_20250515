@@ -128,14 +128,15 @@ model_cnn_ear = nn.create_model_cnn_ear_biometrics(
 )
 callbacks = [EarlyStopping(monitor='val_accuracy', patience=100, restore_best_weights=True)]
 
-# 4) 5-krotna walidacja dla modelu z publikacji
+# 4) 5-krotna walidacja dla modelu z publikacji, 500 epok, wyniki do CSV
 e_scores, e_y_true, e_y_pred = nn.cross_validation(
     n_splits=5,
     X=X, y=y,
     model=model_cnn_ear,
-    epochs=100,
+    epochs=500,
     batch_size=16,
-    callbacks=callbacks
+    callbacks=callbacks,
+    csv_path="results_5_ear_biometrics.csv"
 )
 with open("results_5_ear_biometrics.txt", "w", encoding="utf-8") as f:
     f.write("==== CNN (architektura z publikacji) ====" + "\n")

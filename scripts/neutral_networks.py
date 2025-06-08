@@ -1,10 +1,9 @@
 import os
 import numpy as np
 import tensorflow as tf
-
 from datetime import datetime
 from sklearn.model_selection import StratifiedKFold, KFold
-from sklearn import metrics 
+from sklearn import metrics
 
 
 Dense = tf.keras.layers.Dense
@@ -45,12 +44,7 @@ def unpacking_data(data):
 
 def gen_test_folder_name():
     now = datetime.now()
-    year = now.year
-    month = f"{now.month:02d}"
-    day   = f"{now.day:02d}"
-    hour  = f"{now.hour:02d}"
-    minute= f"{now.minute:02d}"
-    return f"test_{year}{month}{day}_{hour}{minute}"
+    return f"test_{now.year}{now.month:02d}{now.day:02d}_{now.hour:02d}{now.minute:02d}"
 
 
 def flatten_data(dataset, img_type):
@@ -84,16 +78,13 @@ def train_evaluate(X_train, y_train, X_test, y_test, model, epochs, batch_size, 
     return round(acc * 100, 2), y_test, y_pred
 
 
-# def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks):
-#     kf = StratifiedKFold(n_splits=n_splits)
-#     y_labels = np.argmax(y, axis=1)
-
-def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks):
+def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks, csv_path=None):
     if y.ndim > 1:
         y_labels = np.argmax(y, axis=1)
     else:
         y_labels = y
     from collections import Counter
+    import csv
     min_count = min(Counter(y_labels).values())
     if min_count < n_splits:
         print(f"Uwaga: klasa z najmniejszą liczbą próbek ma tylko {min_count} < {n_splits}, przełączam na KFold")
@@ -107,6 +98,7 @@ def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks):
     all_y_pred = []
     model.save_weights('reference_model.weights.h5')
     print(f"{n_splits}-Fold Cross Validation\n")
+    csv_rows = []
     for idx, (train_idx, test_idx) in enumerate(splits, start=1):
         model.load_weights('reference_model.weights.h5')
         score, y_true, y_pred = train_evaluate(
@@ -114,35 +106,25 @@ def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks):
             X[test_idx],  y_labels[test_idx],
             model, epochs, batch_size, callbacks
         )
+        from sklearn.metrics import precision_score, recall_score, f1_score
+        prec = precision_score(y_true, y_pred, average='weighted', zero_division=0)
+        rec = recall_score(y_true, y_pred, average='weighted', zero_division=0)
+        f1 = f1_score(y_true, y_pred, average='weighted', zero_division=0)
         test_scores.append(score)
         all_y_true.append(y_true)
         all_y_pred.append(y_pred)
         print(f"Fold {idx}: test acc = {score}%")
+        csv_rows.append([idx, score, prec, rec, f1])
     mean = round(np.mean(test_scores), 2)
     std  = round(np.std(test_scores), 2)
     print(f"\nFinal results: mean={mean}%, std={std}%")
+    if csv_path:
+        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Fold', 'Accuracy', 'Precision', 'Recall', 'F1-score'])
+            writer.writerows(csv_rows)
+            writer.writerow(['ŚREDNIA', np.mean([row[1] for row in csv_rows]), np.mean([row[2] for row in csv_rows]), np.mean([row[3] for row in csv_rows]), np.mean([row[4] for row in csv_rows])])
     return test_scores, all_y_true, all_y_pred
-# def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks):
-#     kf = StratifiedKFold(n_splits=n_splits)
-#     y_labels = np.argmax(y, axis=1)
-#     test_scores = []
-
-#     # save initial weights
-#     model.save_weights('reference_model.h5')
-#     print(f"{n_splits}-Fold Cross Validation\n")
-
-#     for idx, (train_idx, test_idx) in enumerate(kf.split(X, y_labels), start=1):
-#         model.load_weights('reference_model.h5')
-#         score = train_evaluate(X[train_idx], y_labels[train_idx],
-#                                X[test_idx],  y_labels[test_idx],
-#                                model, epochs, batch_size, callbacks)
-#         test_scores.append(score)
-#         print(f"Fold {idx}: test acc = {score}%")
-
-#     mean = round(np.mean(test_scores), 2)
-#     std  = round(np.std(test_scores), 2)
-#     print(f"\nFinal results: mean={mean}%, std={std}%")
-#     return test_scores
 
 
 def create_model_mlp(n_classes, input_shape,
@@ -151,11 +133,7 @@ def create_model_mlp(n_classes, input_shape,
     model = Sequential([
         Dense(128, input_shape=input_shape,
               activation=func_activation,
-               kernel_initializer=kernel_initializer),
-        #  Dense(128, activation=func_activation,
-        #        kernel_initializer=kernel_initializer),
-        #  Dense(256, activation=func_activation,
-        #        kernel_initializer=kernel_initializer),
+              kernel_initializer=kernel_initializer),
         Dense(n_classes, activation='softmax',
               kernel_initializer='random_uniform'),
     ])
