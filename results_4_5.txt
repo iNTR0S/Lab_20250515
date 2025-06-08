@@ -1,0 +1,21 @@
+==== CNN ====
+CNN fold scores (accuracy): [50.0, 60.0, 60.0, 50.0, 43.33], mean: 52.6660
+Fold 1 - precision: 0.3944, recall: 0.5000, f1: 0.4167
+Fold 2 - precision: 0.5889, recall: 0.6000, f1: 0.5556
+Fold 3 - precision: 0.5486, recall: 0.6000, f1: 0.5496
+Fold 4 - precision: 0.3746, recall: 0.5000, f1: 0.4107
+Fold 5 - precision: 0.3250, recall: 0.4333, f1: 0.3567
+CNN mean precision: 0.4463
+CNN mean recall: 0.5267
+CNN mean f1: 0.4579
+
+==== MLP ====
+MLP fold scores (accuracy): [53.33, 6.67, 10.0, 30.0, 33.33], mean: 26.6660
+Fold 1 - precision: 0.4056, recall: 0.5333, f1: 0.4456
+Fold 2 - precision: 0.0069, recall: 0.0667, f1: 0.0122
+Fold 3 - precision: 0.0104, recall: 0.1000, f1: 0.0188
+Fold 4 - precision: 0.1520, recall: 0.3000, f1: 0.1883
+Fold 5 - precision: 0.1653, recall: 0.3333, f1: 0.2119
+MLP mean precision: 0.1480
+MLP mean recall: 0.2667
+MLP mean f1: 0.1753

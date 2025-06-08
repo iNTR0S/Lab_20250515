@@ -12,6 +12,7 @@ Flatten = tf.keras.layers.Flatten
 Sequential = tf.keras.models.Sequential
 Conv2D = tf.keras.layers.Conv2D
 MaxPooling2D = tf.keras.layers.MaxPooling2D
+Dropout = tf.keras.layers.Dropout
 np_utils = tf.keras.utils
 EarlyStopping = tf.keras.callbacks.EarlyStopping
 
@@ -70,17 +71,17 @@ def reshape_data(dataset):
 
 
 def train_evaluate(X_train, y_train, X_test, y_test, model, epochs, batch_size, callbacks):
-    # y_train = np_utils.to_categorical(y_train)
-    # y_test  = np_utils.to_categorical(y_test)
     n_classes = model.output_shape[-1]
-    y_train = np_utils.to_categorical(y_train, num_classes=n_classes)
-    y_test  = np_utils.to_categorical(y_test,  num_classes=n_classes)
-    model.fit(X_train, y_train,
-              validation_data=(X_test, y_test),
+    y_train_cat = np_utils.to_categorical(y_train, num_classes=n_classes)
+    y_test_cat  = np_utils.to_categorical(y_test,  num_classes=n_classes)
+    model.fit(X_train, y_train_cat,
+              validation_data=(X_test, y_test_cat),
               epochs=epochs, batch_size=batch_size,
-              callbacks=callbacks)
-    _, acc = model.evaluate(X_test, y_test, verbose=0)
-    return round(acc * 100, 2)
+              callbacks=callbacks, verbose=0)
+    _, acc = model.evaluate(X_test, y_test_cat, verbose=0)
+    y_pred_prob = model.predict(X_test)
+    y_pred = np.argmax(y_pred_prob, axis=1)
+    return round(acc * 100, 2), y_test, y_pred
 
 
 # def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks):
@@ -88,17 +89,10 @@ def train_evaluate(X_train, y_train, X_test, y_test, model, epochs, batch_size, 
 #     y_labels = np.argmax(y, axis=1)
 
 def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks):
-    kf = StratifiedKFold(n_splits=n_splits)
-    # jeśli y ma więcej wymiarów, to to-hot → zamień na etykiety, w przeciwnym razie już etykiety
-    # if y.ndim > 1:
-    #     y_labels = np.argmax(y, axis=1)
-    # else:
-    #     y_labels = y
     if y.ndim > 1:
         y_labels = np.argmax(y, axis=1)
     else:
         y_labels = y
-    # jeśli nie da się stratify (np. min_count < n_splits), użyj zwykłego KFold
     from collections import Counter
     min_count = min(Counter(y_labels).values())
     if min_count < n_splits:
@@ -109,31 +103,25 @@ def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks):
         splitter = StratifiedKFold(n_splits=n_splits)
         splits = splitter.split(X, y_labels)
     test_scores = []
-
-    # save initial weights (plik musi kończyć się na .weights.h5)
-    #model.save_weights('reference_model.weights.h5')
-    # save initial weights (plik musi kończyć się na .weights.h5)
+    all_y_true = []
+    all_y_pred = []
     model.save_weights('reference_model.weights.h5')
-    
     print(f"{n_splits}-Fold Cross Validation\n")
-
-    #for idx, (train_idx, test_idx) in enumerate(kf.split(X, y_labels), start=1):
     for idx, (train_idx, test_idx) in enumerate(splits, start=1):
-        # reload initial weights before each fold
         model.load_weights('reference_model.weights.h5')
-        score = train_evaluate(
+        score, y_true, y_pred = train_evaluate(
             X[train_idx], y_labels[train_idx],
             X[test_idx],  y_labels[test_idx],
             model, epochs, batch_size, callbacks
         )
         test_scores.append(score)
+        all_y_true.append(y_true)
+        all_y_pred.append(y_pred)
         print(f"Fold {idx}: test acc = {score}%")
-
     mean = round(np.mean(test_scores), 2)
     std  = round(np.std(test_scores), 2)
     print(f"\nFinal results: mean={mean}%, std={std}%")
-    return test_scores
-
+    return test_scores, all_y_true, all_y_pred
 # def cross_validation(n_splits, X, y, model, epochs, batch_size, callbacks):
 #     kf = StratifiedKFold(n_splits=n_splits)
 #     y_labels = np.argmax(y, axis=1)
@@ -198,6 +186,24 @@ def create_model_cnn(n_classes, input_shape,
     model.compile(loss='categorical_crossentropy',
                   optimizer=optimizer,
                   metrics=['accuracy'])
+    model.summary()
+    return model
+
+
+def create_model_cnn_ear_biometrics(n_classes, input_shape, optimizer='adam'):
+    model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', padding='same', input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
+        Conv2D(64, (3, 3), activation='relu', padding='same'),
+        MaxPooling2D(pool_size=(2, 2)),
+        Conv2D(128, (3, 3), activation='relu', padding='same'),
+        MaxPooling2D(pool_size=(2, 2)),
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(n_classes, activation='softmax'),
+    ])
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
     model.summary()
     return model
 
